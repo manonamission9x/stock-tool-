@@ -75,8 +75,8 @@ export default function DCFTool({ switchTab }) {
 
   function handleClear() {
     if (!confirm('Clear all data and results?')) return;
-    setFcf(0); setGrowth(0); setYears(5); setDiscount(0); setTerminal(0);
-    setNetDebt(0); setShares(0); setPrice(0);
+    setFcf(''); setGrowth(''); setYears(5); setDiscount(''); setTerminal('');
+    setNetDebt(''); setShares(''); setPrice('');
     setShow(false); setSummary(null); setSens([]);
     if (chartInst.current) { chartInst.current.destroy(); chartInst.current = null; }
   }
@@ -105,7 +105,7 @@ export default function DCFTool({ switchTab }) {
             ].map((f, i) => (
               <div className="wc-field" key={i}>
                 <div className="wc-field-label">{f.label}</div>
-                <input type="number" id={f.id} className="num-input" value={f.val} onChange={e => f.set(parseFloat(e.target.value) || 0)} />
+                <input type="number" id={f.id} className="num-input" value={f.val !== null && f.val !== '' ? f.val : ''} onChange={e => f.set(e.target.value === '' ? '' : parseFloat(e.target.value) || 0)} />
                 <div className="wc-field-hint">{f.hint}</div>
               </div>
             ))}

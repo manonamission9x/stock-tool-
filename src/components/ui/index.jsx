@@ -36,7 +36,7 @@ export function Field({ label, value, onChange, hint }) {
   return (
     <div className="wc-field">
       <div className="wc-field-label">{label}</div>
-      <input type="number" className="num-input" value={value} onChange={e => onChange(+e.target.value || 0)} />
+      <input type="number" className="num-input" value={value !== null && value !== '' ? value : ''} onChange={e => onChange(e.target.value === '' ? '' : +e.target.value)} />
       {hint && <div className="wc-field-hint">{hint}</div>}
     </div>
   );

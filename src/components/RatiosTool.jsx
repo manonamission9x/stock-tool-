@@ -2,14 +2,14 @@ import { useRef, useEffect } from 'react';
 import { computeRatios } from '../utils/calculations';
 import { useToast } from './Toast';
 import { usePersistedState } from '../hooks/usePersistedState';
-import { downloadCSV } from '../utils/helpers';
+import { downloadCSV, readFile } from '../utils/helpers';
 import { Masthead, Block, UploadBar, FieldGrid, Field, Toolbar, NextLinks, TrustBadge, EmptyState } from './ui';
 export default function RatiosTool({ switchTab }) {
   const showToast = useToast();
   const [d, setD] = usePersistedState('ratios_d', { revenue: 5000, cogs: 3000, netProfit: 500, totalAssets: 8000, totalEquity: 4000, totalDebt: 1500, currentAssets: 3000, currentLiab: 1500, inventory: 800, interest: 200, ebit: 800 });
   const [res, setRes] = usePersistedState('ratios_res', null);
 
-  useEffect(() => { analyze(); }, []);
+  useEffect(() => { if (d.revenue !== '' && d.revenue !== null) analyze(); }, []);
 
   const fields = [
     { k: 'revenue', l: 'Revenue' }, { k: 'cogs', l: 'COGS' }, { k: 'netProfit', l: 'Net profit' },
@@ -18,29 +18,27 @@ export default function RatiosTool({ switchTab }) {
     { k: 'interest', l: 'Interest expense' }, { k: 'ebit', l: 'EBIT' },
   ];
 
-  function handleCsv(e) {
+  async function handleCsv(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const rows = ev.target.result.split('\n').filter(Boolean);
-        if (rows.length < 2) return;
-        const vals = rows[1].split(',').map(s => parseFloat(s.trim()));
-        const keys = ['revenue','cogs','netProfit','totalAssets','totalEquity','totalDebt','currentAssets','currentLiab','inventory','interest','ebit'];
-        if (vals.length >= 11) {
-          const nd = {}; keys.forEach((k, i) => nd[k] = vals[i] || 0);
-          setD(nd); showToast('Loaded all values');
-        }
-      } catch(err) { showToast('Error reading file: ' + err.message); }
-    };
-    reader.readAsText(file); e.target.value = '';
+    try {
+      const text = await readFile(file);
+      const rows = text.split('\n').filter(Boolean);
+      if (rows.length < 2) return;
+      const vals = rows[1].split(',').map(s => parseFloat(s.trim()));
+      const keys = ['revenue','cogs','netProfit','totalAssets','totalEquity','totalDebt','currentAssets','currentLiab','inventory','interest','ebit'];
+      if (vals.length >= 11) {
+        const nd = {}; keys.forEach((k, i) => nd[k] = vals[i] || 0);
+        setD(nd); showToast('Loaded all values');
+      }
+    } catch(err) { showToast('Error reading file: ' + err.message); }
+    e.target.value = '';
   }
 
   function analyze() { setRes(computeRatios(d)); }
   function clear() {
     if (!confirm('Clear all data and results?')) return;
-    setD({ revenue: 0, cogs: 0, netProfit: 0, totalAssets: 0, totalEquity: 0, totalDebt: 0, currentAssets: 0, currentLiab: 0, inventory: 0, interest: 0, ebit: 0 });
+    setD({ revenue: '', cogs: '', netProfit: '', totalAssets: '', totalEquity: '', totalDebt: '', currentAssets: '', currentLiab: '', inventory: '', interest: '', ebit: '' });
     setRes(null);
   }
 

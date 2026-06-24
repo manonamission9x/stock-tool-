@@ -44,6 +44,9 @@ export default function App() {
     try { localStorage.setItem('fundalyst_last_tab', JSON.stringify({id, time: Date.now()})); } catch {}
     const titles = {'tab-home':'Fundalyst','tab-research':'Research - Fundalyst','tab-filing':'Filing Comparison - Fundalyst','tab-trends':'Trend Analysis - Fundalyst','tab-yoy':'Growth Rates - Fundalyst','tab-peer':'Peer Comparison - Fundalyst','tab-dcf':'DCF Valuation - Fundalyst','tab-tools':'Tools - Fundalyst','tab-wc':'Cash Efficiency - Fundalyst','tab-ratios':'Financial Ratios - Fundalyst','tab-about':'About - Fundalyst'};
     try { document.title = titles[id] || 'Fundalyst'; } catch {}
+    // Focus the tabpanel for accessibility
+    const panel = document.getElementById(id);
+    if (panel) setTimeout(() => { try { panel.focus({preventScroll:true}); } catch {} }, 50);
   }, []);
 
   // Listen for hash changes (browser back/forward, direct hash entry)
@@ -74,7 +77,7 @@ export default function App() {
       <AnalysisProvider><div className="page">
         <Nav activeTab={activeTab} switchTab={switchTab} />
         {Object.entries(TOOLS).map(([id, Component]) => (
-          <div key={id} className={tc(id)} id={id} role="tabpanel" aria-labelledby={id.replace('tab-', '') + '-tab'} hidden={activeTab !== id}>
+          <div key={id} className={tc(id)} id={id} role="tabpanel" aria-labelledby={id.replace('tab-', '') + '-tab'} hidden={activeTab !== id} tabIndex="-1">
             <Suspense fallback={<Loading />}>
               <ErrorBoundary key={id}>
                 {activeTab === id ? <Component switchTab={switchTab} /> : null}

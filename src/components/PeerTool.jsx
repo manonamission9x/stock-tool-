@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { fmtNum } from '../utils/calculations';
 import { usePersistedState } from '../hooks/usePersistedState';
 import { useToast } from './Toast';
-import { downloadCSV } from '../utils/helpers';
+import { downloadCSV, readFile } from '../utils/helpers';
 import { Masthead, Block, UploadBar, Toolbar, NextLinks, TrustBadge, EmptyState } from './ui';
 
 const DEFAULT = ['Company A, 5000, 3000, 500, 8000', 'Company B, 4200, 2800, 380, 7200', 'Company C, 3800, 2100, 420, 6500'].join('\n');
@@ -14,12 +14,14 @@ export default function PeerTool({ switchTab }) {
   const labels = ['Revenue', 'Profit', 'Assets', 'Debt'];
   const csvRef = useRef(null);
 
-  function handleCsvFile(e) {
+  async function handleCsvFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => { try { setCsv(ev.target.result); parseWithText(ev.target.result); } catch(err) { showToast('Error reading file: ' + err.message); } };
-    reader.readAsText(file);
+    try {
+      const text = await readFile(file);
+      setCsv(text);
+      parseWithText(text);
+    } catch(err) { showToast('Error reading file: ' + err.message); }
     e.target.value = '';
   }
 

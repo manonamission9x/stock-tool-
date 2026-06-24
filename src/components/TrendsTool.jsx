@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { fmtNum } from '../utils/calculations';
 import { usePersistedState } from '../hooks/usePersistedState';
 import { useToast } from './Toast';
-import { downloadCSV } from '../utils/helpers';
+import { downloadCSV, readFile } from '../utils/helpers';
 import { Masthead, Block, UploadBar, Toolbar, NextLinks, TrustBadge, EmptyState } from './ui';
 import { useAnalysis } from './AnalysisContext';
 
@@ -14,12 +14,14 @@ export default function TrendsTool({ switchTab }) {
   const [rows, setRows] = useState([]);
   const csvRef = useRef(null);
 
-  function handleCsvFile(e) {
+  async function handleCsvFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => { try { setCsv(ev.target.result); parseWithText(ev.target.result); } catch(err) { showToast('Error reading file: ' + err.message); } };
-    reader.readAsText(file);
+    try {
+      const text = await readFile(file);
+      setCsv(text);
+      parseWithText(text);
+    } catch(err) { showToast('Error reading file: ' + err.message); }
     e.target.value = '';
   }
 

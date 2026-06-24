@@ -4,7 +4,7 @@ import { usePersistedState } from '../hooks/usePersistedState';
 import { useToast } from './Toast';
 import { useAnalysis } from './AnalysisContext';
 import { Masthead, Block, UploadBar, Toolbar, NextLinks, TrustBadge, EmptyState } from './ui';
-import { downloadCSV, safeNum } from '../utils/helpers';
+import { downloadCSV, safeNum, readFile } from '../utils/helpers';
 
 export default function FilingTool({ switchTab }) {
   const showToast = useToast();
@@ -31,28 +31,24 @@ export default function FilingTool({ switchTab }) {
     }
   }, []);
 
-  function handleCsvFile(e) {
+  async function handleCsvFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const text = ev.target.result;
-        const rows = text.split('\n').filter(Boolean);
-        if (rows.length < 3) { showToast('Need at least 2 data rows'); return; }
-        const headers = rows[0].split(',').map(s => s.trim());
-        const labels = [], valsA = [], valsB = [];
-        for (let i = 1; i < rows.length; i++) {
-          const cols = rows[i].split(',').map(s => s.trim());
-          if (cols.length >= 3) { labels.push(cols[0]); valsA.push(cols[1]); valsB.push(cols[2]); }
-        }
-        setLabelA(headers[1] || 'Earlier'); setLabelB(headers[2] || 'Latest');
-        setPeriodA(labels.map((l, i) => l + ': ' + valsA[i]).join('\n'));
-        setPeriodB(labels.map((l, i) => l + ': ' + valsB[i]).join('\n'));
-        showToast('Loaded ' + labels.length + ' line items');
-      } catch(err) { showToast('Error: ' + err.message); }
-    };
-    reader.readAsText(file);
+    try {
+      const text = await readFile(file);
+      const rows = text.split('\n').filter(Boolean);
+      if (rows.length < 3) { showToast('Need at least 2 data rows'); return; }
+      const headers = rows[0].split(',').map(s => s.trim());
+      const labels = [], valsA = [], valsB = [];
+      for (let i = 1; i < rows.length; i++) {
+        const cols = rows[i].split(',').map(s => s.trim());
+        if (cols.length >= 3) { labels.push(cols[0]); valsA.push(cols[1]); valsB.push(cols[2]); }
+      }
+      setLabelA(headers[1] || 'Earlier'); setLabelB(headers[2] || 'Latest');
+      setPeriodA(labels.map((l, i) => l + ': ' + valsA[i]).join('\n'));
+      setPeriodB(labels.map((l, i) => l + ': ' + valsB[i]).join('\n'));
+      showToast('Loaded ' + labels.length + ' line items');
+    } catch(err) { showToast('Error reading file: ' + err.message); }
     e.target.value = '';
   }
 

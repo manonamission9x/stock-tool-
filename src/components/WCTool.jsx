@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { computeWC, fmtNum } from '../utils/calculations';
 import { usePersistedState } from '../hooks/usePersistedState';
 import { useToast } from './Toast';
+import { readFile } from '../utils/helpers';
 import { Masthead, Block, UploadBar, FieldGrid, Field, Toolbar, NextLinks, TrustBadge, EmptyState, MetricGrid } from './ui';
 export default function WCTool({ switchTab }) {
   const showToast = useToast();
@@ -14,31 +15,27 @@ export default function WCTool({ switchTab }) {
   const [res, setRes] = usePersistedState('wc_res', null);
   const csvRef = useRef(null);
 
-  useEffect(() => { analyze(); }, []);
+  useEffect(() => { if (rev !== '' && cogs !== '') analyze(); }, []);
 
-  function handleCsv(e) {
+  async function handleCsv(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const text = ev.target.result;
-        const rows = text.split('\n').filter(Boolean);
-        if (rows.length < 2) return;
-        const vals = rows[1].split(',').map(s => parseFloat(s.trim()));
-        if (vals.length >= 6) {
-          setRev(vals[0] || 0); setCogs(vals[1] || 0); setRec(vals[2] || 0);
-          setInv(vals[3] || 0); setPay(vals[4] || 0); setCash(vals[5] || 0);
-          showToast('Loaded ' + vals.length + ' values');
-        }
-      } catch(err) { showToast('Error reading file: ' + err.message); }
-    };
-    reader.readAsText(file);
+    try {
+      const text = await readFile(file);
+      const rows = text.split('\n').filter(Boolean);
+      if (rows.length < 2) return;
+      const vals = rows[1].split(',').map(s => parseFloat(s.trim()));
+      if (vals.length >= 6) {
+        setRev(vals[0] || 0); setCogs(vals[1] || 0); setRec(vals[2] || 0);
+        setInv(vals[3] || 0); setPay(vals[4] || 0); setCash(vals[5] || 0);
+        showToast('Loaded ' + vals.length + ' values');
+      }
+    } catch(err) { showToast('Error reading file: ' + err.message); }
     e.target.value = '';
   }
 
   function analyze() { setRes(computeWC(rev, cogs, rec, inv, pay, cash)); }
-  function clear() { if (!confirm('Clear all data and results?')) return; setRev(0); setCogs(0); setRec(0); setInv(0); setPay(0); setCash(0); setRes(null); }
+  function clear() { if (!confirm('Clear all data and results?')) return; setRev(''); setCogs(''); setRec(''); setInv(''); setPay(''); setCash(''); setRes(null); }
 
   return (
     <div>

@@ -10,6 +10,41 @@ export function downloadCSV(filename, rows) {
   URL.revokeObjectURL(url);
 }
 
+// Parse Excel (.xlsx) file and return text as CSV
+export function parseExcel(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        const csv = json.filter(r => r.length > 0).map(r => r.join(',')).join('\n');
+        resolve(csv);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// Read a file (CSV or Excel) and return text content
+export function readFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'xlsx' || ext === 'xls') {
+    return parseExcel(file);
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsText(file);
+  });
+}
+
 // Format a number safely
 export function safeNum(val) {
   const n = parseFloat(val);
