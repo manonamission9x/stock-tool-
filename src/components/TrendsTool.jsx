@@ -5,6 +5,9 @@ import { useToast } from './Toast';
 import { downloadCSV, readFile } from '../utils/helpers';
 import { Masthead, Block, UploadBar, Toolbar, NextLinks, TrustBadge, EmptyState } from './ui';
 import { useAnalysis } from './AnalysisContext';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 export default function TrendsTool({ switchTab }) {
   const showToast = useToast();
@@ -13,6 +16,9 @@ export default function TrendsTool({ switchTab }) {
   const [headers, setHeaders] = useState([]);
   const [rows, setRows] = useState([]);
   const csvRef = useRef(null);
+  const chartRef = useRef(null);
+  const chartInst = useRef(null);
+  const [chartMetric, setChartMetric] = useState(0);
 
   async function handleCsvFile(e) {
     const file = e.target.files?.[0];
@@ -47,6 +53,49 @@ export default function TrendsTool({ switchTab }) {
   useEffect(() => { if (csv) { const t = setTimeout(() => parse(), 0); return () => clearTimeout(t); } }, [csv]);
   function parse() { const lines = csv.split('\n').filter(Boolean); parseWithText(csv); showToast('Loaded ' + (lines.length - 1) + ' metrics'); }
 
+  // Build line chart when rows change
+  useEffect(() => {
+    if (chartInst.current) { chartInst.current.destroy(); chartInst.current = null; }
+    if (!chartRef.current || rows.length === 0) return;
+    const metric = rows[chartMetric] || rows[0];
+    if (!metric) return;
+    const labels = headers.slice(1);
+    const colors = ['#4F6EF7', '#34A86C', '#CBA344', '#E5484D', '#8B5CF6'];
+    try {
+      chartInst.current = new Chart(chartRef.current, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: rows.map((r, i) => ({
+            label: r.label,
+            data: r.vals,
+            borderColor: colors[i % colors.length],
+            backgroundColor: colors[i % colors.length] + '20',
+            pointBackgroundColor: colors[i % colors.length],
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 2,
+            tension: 0.3,
+            fill: false,
+          }))
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top', labels: { color: '#D0D1DC', font: { size: 11, family: 'IBM Plex Sans' }, boxWidth: 12, padding: 12 } },
+            tooltip: { backgroundColor: '#1C1E2A', titleColor: '#F0EFEA', bodyColor: '#D0D1DC', borderColor: '#2A2D3E', borderWidth: 1, padding: 10, bodyFont: { size: 12 }, titleFont: { size: 12, weight: '600' } },
+          },
+          scales: {
+            x: { ticks: { color: '#74768A', font: { size: 11 } }, grid: { color: '#2A2D3E33' } },
+            y: { ticks: { color: '#74768A', font: { size: 11 }, callback: v => '₹' + v.toLocaleString('en-IN') }, grid: { color: '#2A2D3E33' } },
+          },
+        }
+      });
+    } catch(err) { showToast('Chart render error'); }
+    return () => { if (chartInst.current) { chartInst.current.destroy(); chartInst.current = null; } };
+  }, [rows, chartMetric, headers]);
+
   function clear() { if (!confirm('Clear all data and results?')) return; setCsv(''); setHeaders([]); setRows([]); }
 
   return (
@@ -63,6 +112,12 @@ export default function TrendsTool({ switchTab }) {
 
         {rows.length > 0 && (
           <Block label="Data table" style={{ marginTop: 2 }}>
+            <div style={{ padding: '10px 20px 4px' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>{rows[chartMetric]?.label || 'Revenue'} Trend (₹ Cr)</div>
+              <div style={{ position: 'relative', height: 250 }}>
+                <canvas ref={chartRef} />
+              </div>
+            </div>
             <table className="diff-table">
               <thead><tr><th>Metric</th>{headers.slice(1).map((h, i) => <th key={i}>{h}</th>)}</tr></thead>
               <tbody>

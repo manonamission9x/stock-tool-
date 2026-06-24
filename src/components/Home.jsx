@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import DotMap from './DotMap';
 
 const features = [
@@ -12,19 +12,6 @@ const features = [
 ];
 
 export default function Home({ switchTab }) {
-  const [isFirstVisit, setIsFirstVisit] = useState(true);
-
-  useEffect(() => {
-    try {
-      if (!localStorage.getItem('fundalyst_seen')) {
-        localStorage.setItem('fundalyst_seen', '1');
-        setIsFirstVisit(true);
-      } else {
-        setIsFirstVisit(false);
-      }
-    } catch { setIsFirstVisit(false); }
-  }, []);
-
   return (
     <div className="home-hero">
       <DotMap />
@@ -33,7 +20,6 @@ export default function Home({ switchTab }) {
 
       <div className="home-cta-row">
         <button className="home-cta-primary" onClick={() => switchTab && switchTab('tab-trends')}>Analyze a company</button>
-        {isFirstVisit && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--primary)', marginLeft: 8, animation: 'pulse-blue 2s ease-in-out infinite' }}>[Start here →]</span>}
       </div>
 
       {/* Preview card */}
